@@ -1,0 +1,29 @@
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# Logs
+*.log
+
+# ESP32 Build Files
+xn_blefi_esp32/build/
+xn_blefi_esp32/sdkconfig
+xn_blefi_esp32/sdkconfig.old
+xn_blefi_esp32/.config
+xn_blefi_esp32/.config.old
+xn_blefi_esp32/dependencies.lock
+
+# WeChat MiniProgram
+blefi_wechat/node_modules/
+blefi_wechat/miniprogram_npm/
+blefi_wechat/.tea/
+
+# Temporary files
+*.tmp
+*.bak
+*.swp
+*~
