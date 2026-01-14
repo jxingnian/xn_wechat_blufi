@@ -1,21 +1,35 @@
 /*
  * @Author: 星年 jixingnian@gmail.com
- * @Date: 2025-11-22 13:43:50
- * @LastEditors: xingnian jixingnian@gmail.com
- * @LastEditTime: 2025-11-22 20:17:58
- * @FilePath: \xn_web_wifi_config\main\main.c
- * @Description: esp32 网页WiFi配网 By.星年
+ * @Date: 2025-01-14
+ * @Description: ESP32蓝牙小程序配网 By.星年
  */
 
 #include <stdio.h>
-#include <inttypes.h>
-#include "sdkconfig.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
-#include "esp_system.h"
-#include "xn_wifi_manage.h"
+#include "esp_log.h"
+#include "app_blufi.h"
+
+static const char *TAG = "MAIN"; // 日志标签
 
 void app_main(void)
 {
-    printf("esp32 蓝牙小程序配网 By.星年\n");
+    ESP_LOGI(TAG, "========================================");
+    ESP_LOGI(TAG, "  ESP32蓝牙小程序配网 By.星年");
+    ESP_LOGI(TAG, "========================================");
+    
+    // 初始化蓝牙配网应用层
+    esp_err_t ret = app_blufi_init();
+    if (ret != ESP_OK) {
+        ESP_LOGE(TAG, "蓝牙配网应用初始化失败");
+        return;
+    }
+    
+    // 主循环 - 可以在这里添加其他业务逻辑
+    while (1) {
+        vTaskDelay(pdMS_TO_TICKS(1000)); // 延时1秒
+        
+        // TODO: 添加你的业务逻辑
+        // 例如：连接MQTT服务器、上传数据等
+    }
 }
