@@ -27,3 +27,5 @@ blefi_wechat/.tea/
 *.bak
 *.swp
 *~
+
+temp/

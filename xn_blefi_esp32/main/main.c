@@ -17,7 +17,5 @@
 
 void app_main(void)
 {
-    printf("esp32 网页WiFi配网 By.星年\n");
-    esp_err_t ret = wifi_manage_init(NULL);
-    (void)ret; 
+    printf("esp32 蓝牙小程序配网 By.星年\n");
 }
