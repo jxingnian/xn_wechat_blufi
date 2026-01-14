@@ -14,10 +14,12 @@
 #include "nvs.h"
 #include "esp_blufi_api.h"
 #include "esp_blufi.h"
+#include "esp_nimble_hci.h"
 #include "nimble/nimble_port.h"
 #include "nimble/nimble_port_freertos.h"
 #include "host/ble_hs.h"
 #include "host/util/util.h"
+#include "host/ble_store.h"
 #include "services/gap/ble_svc_gap.h"
 #include "services/gatt/ble_svc_gatt.h"
 #include "freertos/event_groups.h"
@@ -56,12 +58,6 @@ void xn_blufi_on_sync(void)
     ESP_LOGI(TAG, "NimBLE同步完成");
     // 初始化BluFi profile
     esp_blufi_profile_init();
-}
-
-/* GATT服务器注册回调 */
-void xn_blufi_gatt_svr_register_cb(struct ble_gatt_register_ctxt *ctxt, void *arg)
-{
-    // GATT服务器注册回调处理
 }
 
 /* NimBLE主机任务 */
@@ -340,14 +336,11 @@ esp_err_t xn_blufi_init(xn_blufi_t *blufi)
     ESP_ERROR_CHECK(esp_wifi_start()); // 启动WiFi
     
     // 初始化NimBLE协议栈
-    ret = esp_nimble_hci_and_controller_init();
+    ret = esp_nimble_init();
     if (ret != ESP_OK) {
-        ESP_LOGE(TAG, "初始化NimBLE控制器失败: %s", esp_err_to_name(ret));
+        ESP_LOGE(TAG, "初始化NimBLE失败: %s", esp_err_to_name(ret));
         return ret;
     }
-    
-    // 初始化NimBLE主机
-    nimble_port_init();
     
     // 配置NimBLE主机
     ble_hs_cfg.reset_cb = xn_blufi_on_reset;
@@ -369,9 +362,6 @@ esp_err_t xn_blufi_init(xn_blufi_t *blufi)
         return ESP_FAIL;
     }
     
-    // 初始化存储配置
-    ble_store_config_init();
-    
     // 初始化BluFi BTC层
     esp_blufi_btc_init();
     
@@ -383,7 +373,11 @@ esp_err_t xn_blufi_init(xn_blufi_t *blufi)
     }
     
     // 启动NimBLE主机任务
-    nimble_port_freertos_init(xn_blufi_host_task);
+    ret = esp_nimble_enable(xn_blufi_host_task);
+    if (ret) {
+        ESP_LOGE(TAG, "启动NimBLE失败: %s", esp_err_to_name(ret));
+        return ret;
+    }
     
     ESP_LOGI(TAG, "BluFi初始化成功");
     return ESP_OK;
@@ -403,9 +397,9 @@ esp_err_t xn_blufi_deinit(xn_blufi_t *blufi)
     esp_err_t ret = nimble_port_stop();
     if (ret == ESP_OK) {
         nimble_port_deinit();
-        ret = esp_nimble_hci_and_controller_deinit();
+        ret = esp_nimble_deinit();
         if (ret != ESP_OK) {
-            ESP_LOGE(TAG, "反初始化NimBLE控制器失败");
+            ESP_LOGE(TAG, "反初始化NimBLE失败");
         }
     }
     

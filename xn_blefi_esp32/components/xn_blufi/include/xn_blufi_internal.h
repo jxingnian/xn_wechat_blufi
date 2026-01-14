@@ -9,6 +9,7 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include "host/ble_gatt.h"
 
 #ifdef __cplusplus
 extern "C" {
