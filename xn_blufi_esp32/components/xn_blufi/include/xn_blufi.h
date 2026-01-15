@@ -21,27 +21,9 @@
 extern "C" {
 #endif
 
-/* WiFi配置信息结构体 */
-typedef struct {
-    char ssid[32];          // WiFi名称
-    char password[64];      // WiFi密码
-    uint8_t bssid[6];       // WiFi MAC地址
-    bool bssid_set;         // 是否设置了BSSID
-} xn_wifi_config_t;
-
-/* WiFi连接状态 */
-typedef enum {
-    XN_WIFI_DISCONNECTED = 0,   // 未连接
-    XN_WIFI_CONNECTING,         // 连接中
-    XN_WIFI_CONNECTED,          // 已连接但未获取IP
-    XN_WIFI_GOT_IP              // 已连接并获取IP
-} xn_wifi_status_t;
-
-/* WiFi扫描结果回调函数类型 */
-typedef void (*xn_wifi_scan_done_cb_t)(uint16_t ap_count, wifi_ap_record_t *ap_list);
-
-/* WiFi状态变化回调函数类型 */
-typedef void (*xn_wifi_status_cb_t)(xn_wifi_status_t status);
+// 引入WiFi管理器和存储层的类型定义
+#include "xn_wifi_manager.h"
+#include "xn_wifi_storage.h"
 
 /* BluFi配网组件类 */
 typedef struct xn_blufi_s xn_blufi_t;
