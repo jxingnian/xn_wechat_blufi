@@ -40,14 +40,30 @@ esp_err_t xn_wifi_storage_init(void);
 esp_err_t xn_wifi_storage_save(const char *ssid, const char *password);
 
 /**
- * @brief 从NVS加载WiFi配置
+ * @brief 从NVS加载WiFi配置（加载第一个配置，兼容旧接口）
  * @param config 输出参数，保存加载的配置
  * @return ESP_OK成功，其他值失败
  */
 esp_err_t xn_wifi_storage_load(xn_wifi_config_t *config);
 
 /**
- * @brief 从NVS删除WiFi配置
+ * @brief 从NVS加载所有WiFi配置
+ * @param configs 输出参数，保存加载的配置数组
+ * @param count 输出参数，实际加载的配置数量
+ * @param max_count 最大加载数量
+ * @return ESP_OK成功，其他值失败
+ */
+esp_err_t xn_wifi_storage_load_all(xn_wifi_config_t *configs, uint8_t *count, uint8_t max_count);
+
+/**
+ * @brief 删除指定索引的WiFi配置
+ * @param index 配置索引（从0开始）
+ * @return ESP_OK成功，其他值失败
+ */
+esp_err_t xn_wifi_storage_delete_by_index(uint8_t index);
+
+/**
+ * @brief 从NVS删除所有WiFi配置
  * @return ESP_OK成功，其他值失败
  */
 esp_err_t xn_wifi_storage_delete(void);

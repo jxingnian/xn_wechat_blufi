@@ -24,6 +24,45 @@
 
 static const char *TAG = "XN_BLUFI";
 
+/* WiFi扫描完成回调 */
+static void blufi_wifi_scan_callback(uint16_t ap_count, wifi_ap_record_t *ap_list)
+{
+    ESP_LOGI(TAG, "WiFi扫描完成，发送%d个AP信息", ap_count);
+    
+    if (ap_count == 0 || ap_list == NULL) {
+        // 发送空列表
+        esp_blufi_send_wifi_list(0, NULL);
+        return;
+    }
+    
+    // 转换为 BluFi AP 记录格式
+    esp_blufi_ap_record_t *blufi_ap_list = malloc(sizeof(esp_blufi_ap_record_t) * ap_count);
+    if (blufi_ap_list == NULL) {
+        ESP_LOGE(TAG, "分配内存失败");
+        return;
+    }
+    
+    for (int i = 0; i < ap_count; i++) {
+        // 复制 SSID，确保不包含结尾的 NULL
+        size_t ssid_len = strlen((char*)ap_list[i].ssid);
+        if (ssid_len > sizeof(blufi_ap_list[i].ssid) - 1) {
+            ssid_len = sizeof(blufi_ap_list[i].ssid) - 1;
+        }
+        memcpy(blufi_ap_list[i].ssid, ap_list[i].ssid, ssid_len);
+        blufi_ap_list[i].ssid[ssid_len] = '\0';
+        
+        blufi_ap_list[i].rssi = ap_list[i].rssi;
+        
+        ESP_LOGI(TAG, "  AP[%d]: SSID=\"%s\" (len=%d), RSSI=%d", 
+                 i, blufi_ap_list[i].ssid, ssid_len, blufi_ap_list[i].rssi);
+    }
+    
+    // 发送WiFi列表
+    esp_blufi_send_wifi_list(ap_count, blufi_ap_list);
+    
+    free(blufi_ap_list);
+}
+
 /* BluFi组件实例结构体 */
 struct xn_blufi_s {
     char device_name[32];                   // 蓝牙设备名称
@@ -34,6 +73,15 @@ struct xn_blufi_s {
 };
 
 static xn_blufi_t *g_blufi_instance = NULL;
+
+/* 获取当前待连接的WiFi配置（内部使用） */
+static void xn_blufi_get_pending_config(xn_blufi_t *blufi, char *ssid, char *password)
+{
+    if (blufi && ssid && password) {
+        strncpy(ssid, blufi->pending_ssid, 32);
+        strncpy(password, blufi->pending_password, 64);
+    }
+}
 
 /* NimBLE重置回调 */
 void xn_blufi_on_reset(int reason)
@@ -61,6 +109,9 @@ static void blufi_event_callback(esp_blufi_cb_event_t event, esp_blufi_cb_param_
 {
     xn_blufi_t *blufi = g_blufi_instance;
     if (blufi == NULL) return;
+    
+    // 添加事件日志
+    ESP_LOGI(TAG, "收到BluFi事件: %d", event);
     
     switch (event) {
         case ESP_BLUFI_EVENT_INIT_FINISH:
@@ -130,13 +181,85 @@ static void blufi_event_callback(esp_blufi_cb_event_t event, esp_blufi_cb_param_
         
         case ESP_BLUFI_EVENT_GET_WIFI_LIST: {
             ESP_LOGI(TAG, "请求扫描WiFi");
-            wifi_scan_config_t scan_config = {
-                .ssid = NULL,
-                .bssid = NULL,
-                .channel = 0,
-                .show_hidden = false
-            };
-            esp_wifi_scan_start(&scan_config, false);
+            
+            // 注册扫描完成回调
+            xn_blufi_wifi_scan(blufi, blufi_wifi_scan_callback);
+            break;
+        }
+        
+        case ESP_BLUFI_EVENT_RECV_CUSTOM_DATA: {
+            ESP_LOGI(TAG, "收到自定义数据请求");
+            
+            if (param->custom_data.data_len > 0) {
+                uint8_t cmd_type = param->custom_data.data[0];
+                
+                // 类型 0x01: 请求获取存储的WiFi配置（所有）
+                if (cmd_type == 0x01) {
+                    ESP_LOGI(TAG, "请求获取所有存储的WiFi配置");
+                    
+                    // 读取所有存储的配置
+                    xn_wifi_config_t configs[10];
+                    uint8_t count = 0;
+                    esp_err_t ret = xn_wifi_storage_load_all(configs, &count, 10);
+                    
+                    // 构建响应数据：[类型(1字节), 状态(1字节), 数量(1字节), [SSID长度, SSID, 密码长度, 密码]...]
+                    uint8_t response[512];
+                    int offset = 0;
+                    
+                    response[offset++] = 0x01;  // 类型：存储的WiFi配置
+                    
+                    if (ret == ESP_OK && count > 0) {
+                        response[offset++] = 0x00;  // 状态：成功
+                        response[offset++] = count;  // 配置数量
+                        
+                        for (int i = 0; i < count; i++) {
+                            // SSID
+                            uint8_t ssid_len = strlen(configs[i].ssid);
+                            response[offset++] = ssid_len;
+                            memcpy(&response[offset], configs[i].ssid, ssid_len);
+                            offset += ssid_len;
+                            
+                            // 密码
+                            uint8_t pwd_len = strlen(configs[i].password);
+                            response[offset++] = pwd_len;
+                            memcpy(&response[offset], configs[i].password, pwd_len);
+                            offset += pwd_len;
+                            
+                            ESP_LOGI(TAG, "  [%d] %s", i, configs[i].ssid);
+                        }
+                        
+                        ESP_LOGI(TAG, "发送%d个存储的WiFi配置", count);
+                    } else {
+                        response[offset++] = 0x01;  // 状态：未找到
+                        response[offset++] = 0;     // 数量：0
+                        ESP_LOGI(TAG, "未找到存储的WiFi配置");
+                    }
+                    
+                    // 发送自定义数据响应
+                    esp_blufi_send_custom_data(response, offset);
+                }
+                // 类型 0x02: 请求删除指定索引的WiFi配置
+                else if (cmd_type == 0x02 && param->custom_data.data_len >= 2) {
+                    uint8_t index = param->custom_data.data[1];
+                    ESP_LOGI(TAG, "请求删除WiFi配置，索引: %d", index);
+                    
+                    esp_err_t ret = xn_wifi_storage_delete_by_index(index);
+                    
+                    // 构建响应数据：[类型(1字节), 状态(1字节)]
+                    uint8_t response[2];
+                    response[0] = 0x02;  // 类型：删除配置
+                    response[1] = (ret == ESP_OK) ? 0x00 : 0x01;  // 状态
+                    
+                    // 发送自定义数据响应
+                    esp_blufi_send_custom_data(response, 2);
+                    
+                    if (ret == ESP_OK) {
+                        ESP_LOGI(TAG, "WiFi配置已删除，索引: %d", index);
+                    } else {
+                        ESP_LOGE(TAG, "删除WiFi配置失败");
+                    }
+                }
+            }
             break;
         }
         

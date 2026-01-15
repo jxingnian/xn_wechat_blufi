@@ -1,62 +1,458 @@
-/**index.wxss**/
-page {
-  height: 100vh;
-  display: flex;
-  flex-direction: column;
-}
-.scrollarea {
-  flex: 1;
-  overflow-y: hidden;
+/* index.wxss - BluFi 配网管理页面样式 */
+
+.container {
+  min-height: 100vh;
+  background: #f5f5f5;
+  padding: 12rpx 0 20rpx;
 }
 
-.userinfo {
+/* ========== 区块 ========== */
+.section {
+  margin: 12rpx 12rpx 0;
+  background: white;
+  border-radius: 12rpx;
+  overflow: hidden;
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.04);
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14rpx 18rpx;
+  border-bottom: 1rpx solid #f0f0f0;
+  background: #fafafa;
+}
+
+.section-title {
+  font-size: 26rpx;
+  font-weight: bold;
+  color: #333;
+}
+
+/* ========== 空状态 ========== */
+.empty-state {
   display: flex;
   flex-direction: column;
   align-items: center;
-  color: #aaa;
-  width: 80%;
+  padding: 80rpx 30rpx;
 }
 
-.userinfo-avatar {
-  overflow: hidden;
-  width: 128rpx;
-  height: 128rpx;
-  margin: 20rpx;
-  border-radius: 50%;
+.empty-state .icon {
+  font-size: 100rpx;
+  margin-bottom: 20rpx;
 }
 
-.usermotto {
-  margin-top: 200px;
+.empty-state .title {
+  font-size: 32rpx;
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 12rpx;
 }
 
-.avatar-wrapper {
-  padding: 0;
-  width: 56px !important;
-  border-radius: 8px;
-  margin-top: 40px;
-  margin-bottom: 40px;
+.empty-state .desc {
+  font-size: 26rpx;
+  color: #999;
+  margin-bottom: 40rpx;
 }
 
-.avatar {
-  display: block;
-  width: 56px;
-  height: 56px;
-}
-
-.nickname-wrapper {
+.empty-tip {
   display: flex;
-  width: 100%;
-  padding: 16px;
-  box-sizing: border-box;
-  border-top: .5px solid rgba(0, 0, 0, 0.1);
-  border-bottom: .5px solid rgba(0, 0, 0, 0.1);
-  color: black;
+  flex-direction: column;
+  align-items: center;
+  padding: 40rpx 30rpx;
+  color: #999;
+  font-size: 24rpx;
 }
 
-.nickname-label {
-  width: 105px;
+.tip-small {
+  font-size: 20rpx;
+  margin-top: 6rpx;
 }
 
-.nickname-input {
+/* ========== 设备卡片 ========== */
+.device-card {
+  margin: 12rpx 12rpx 0;
+  background: white;
+  border-radius: 12rpx;
+  padding: 14rpx 18rpx;
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.04);
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.device-card .device-info {
   flex: 1;
+}
+
+.device-card .device-name {
+  display: block;
+  font-size: 26rpx;
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 4rpx;
+}
+
+.status-badge {
+  display: inline-block;
+  padding: 4rpx 12rpx;
+  border-radius: 12rpx;
+  font-size: 20rpx;
+  margin-left: 8rpx;
+}
+
+.status-badge.connected {
+  background: #e8f5e9;
+  color: #4caf50;
+}
+
+/* ========== 设备列表 ========== */
+.device-list {
+  background: white;
+}
+
+.device-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16rpx 20rpx;
+  border-bottom: 1rpx solid #f5f5f5;
+  transition: background 0.2s;
+}
+
+.device-item:active {
+  background: #f8f8f8;
+}
+
+.device-item:last-child {
+  border-bottom: none;
+}
+
+.device-item .device-info {
+  flex: 1;
+}
+
+.device-item .device-name {
+  display: block;
+  font-size: 26rpx;
+  font-weight: 500;
+  color: #333;
+  margin-bottom: 4rpx;
+}
+
+.device-item .device-id {
+  display: block;
+  font-size: 20rpx;
+  color: #999;
+}
+
+.device-action {
+  display: flex;
+  align-items: center;
+  gap: 10rpx;
+}
+
+.rssi {
+  font-size: 20rpx;
+  color: #999;
+}
+
+.arrow {
+  font-size: 32rpx;
+  color: #ccc;
+}
+
+/* ========== WiFi状态卡片 ========== */
+.wifi-status-card {
+  padding: 16rpx 20rpx;
+}
+
+.status-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12rpx 0;
+  border-bottom: 1rpx solid #f5f5f5;
+}
+
+.status-row:last-child {
+  border-bottom: none;
+}
+
+.status-row .label {
+  font-size: 24rpx;
+  color: #666;
+}
+
+.status-row .value {
+  font-size: 24rpx;
+  color: #333;
+  font-weight: 500;
+}
+
+.status-row .value.success {
+  color: #4caf50;
+}
+
+.status-row .value.error {
+  color: #f44336;
+}
+
+.status-actions {
+  margin-top: 16rpx;
+  padding-top: 16rpx;
+  border-top: 1rpx solid #f0f0f0;
+}
+
+/* ========== 存储配置卡片 ========== */
+.stored-config-card {
+  padding: 14rpx 18rpx;
+}
+
+.stored-config-list {
+  padding: 0;
+}
+
+.stored-config-item {
+  padding: 14rpx 18rpx;
+  border-bottom: 1rpx solid #f5f5f5;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.stored-config-item:last-child {
+  border-bottom: none;
+}
+
+.config-info {
+  flex: 1;
+  margin-right: 12rpx;
+}
+
+.config-main {
+  display: flex;
+  flex-direction: column;
+  gap: 4rpx;
+}
+
+.config-ssid {
+  font-size: 26rpx;
+  color: #333;
+  font-weight: 500;
+}
+
+.config-pwd {
+  font-size: 22rpx;
+  color: #999;
+  font-family: monospace;
+  letter-spacing: 1rpx;
+}
+
+.config-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10rpx 0;
+}
+
+.config-row .label {
+  font-size: 24rpx;
+  color: #666;
+}
+
+.config-row .value {
+  font-size: 24rpx;
+  color: #333;
+  font-weight: 500;
+  max-width: 400rpx;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.config-row .value.password {
+  font-family: monospace;
+  letter-spacing: 2rpx;
+}
+
+.config-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8rpx;
+}
+
+.config-actions .btn-small {
+  min-width: 100rpx;
+}
+
+/* ========== WiFi列表 ========== */
+.wifi-list {
+  max-height: 450rpx;
+  overflow-y: auto;
+}
+
+.wifi-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16rpx 20rpx;
+  border-bottom: 1rpx solid #f5f5f5;
+  transition: all 0.2s;
+}
+
+.wifi-item:active {
+  background: #f8f8f8;
+}
+
+.wifi-item:last-child {
+  border-bottom: none;
+}
+
+.wifi-item.selected {
+  background: #e3f2fd;
+  border-left: 3rpx solid #2196f3;
+}
+
+.wifi-info {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 10rpx;
+}
+
+.wifi-ssid {
+  font-size: 26rpx;
+  color: #333;
+  font-weight: 500;
+}
+
+.wifi-secure {
+  font-size: 22rpx;
+}
+
+.wifi-signal .rssi {
+  font-size: 20rpx;
+  color: #999;
+}
+
+/* ========== 配置表单 ========== */
+.config-form {
+  padding: 16rpx 20rpx;
+  border-top: 1rpx solid #f0f0f0;
+}
+
+.form-item {
+  margin-bottom: 16rpx;
+}
+
+.form-label {
+  display: block;
+  font-size: 24rpx;
+  color: #666;
+  margin-bottom: 10rpx;
+}
+
+.form-value {
+  display: block;
+  font-size: 26rpx;
+  color: #333;
+  font-weight: 500;
+}
+
+.form-input {
+  width: 100%;
+  padding: 20rpx 16rpx;
+  border: 2rpx solid #e0e0e0;
+  border-radius: 8rpx;
+  font-size: 28rpx;
+  box-sizing: border-box;
+  line-height: 1.5;
+  min-height: 72rpx;
+}
+
+.form-input:focus {
+  border-color: #667eea;
+}
+
+/* ========== 结果提示 ========== */
+.result-tip {
+  margin-top: 16rpx;
+  padding: 14rpx;
+  border-radius: 8rpx;
+  text-align: center;
+  font-size: 24rpx;
+}
+
+.result-tip.success {
+  background: #e8f5e9;
+  color: #4caf50;
+}
+
+.result-tip.error {
+  background: #ffebee;
+  color: #f44336;
+}
+
+/* ========== 按钮 ========== */
+.btn-primary {
+  width: 100%;
+  height: 76rpx;
+  line-height: 76rpx;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  border-radius: 38rpx;
+  font-size: 28rpx;
+  font-weight: bold;
+  box-shadow: 0 4rpx 12rpx rgba(102, 126, 234, 0.2);
+}
+
+.btn-primary:active {
+  opacity: 0.9;
+  transform: scale(0.98);
+}
+
+.btn-primary[disabled] {
+  background: #ccc;
+  box-shadow: none;
+}
+
+.btn-small {
+  padding: 8rpx 20rpx;
+  background: #f5f5f5;
+  color: #666;
+  border: none;
+  border-radius: 20rpx;
+  font-size: 20rpx;
+}
+
+.btn-small:active {
+  background: #e0e0e0;
+}
+
+.btn-small[disabled] {
+  opacity: 0.5;
+}
+
+.btn-small.btn-primary {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
+.btn-small.btn-primary:active {
+  opacity: 0.9;
+}
+
+.btn-danger {
+  background: #ffebee;
+  color: #f44336;
+}
+
+.btn-danger:active {
+  background: #ffcdd2;
 }

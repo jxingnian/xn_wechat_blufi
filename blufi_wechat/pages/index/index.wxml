@@ -1,27 +1,196 @@
-<!--index.wxml-->
-<scroll-view class="scrollarea" scroll-y type="list">
-  <view class="container">
-    <view class="userinfo">
-      <block wx:if="{{canIUseNicknameComp && !hasUserInfo}}">
-        <button class="avatar-wrapper" open-type="chooseAvatar" bind:chooseavatar="onChooseAvatar">
-          <image class="avatar" src="{{userInfo.avatarUrl}}"></image>
-        </button>
-        <view class="nickname-wrapper">
-          <text class="nickname-label">昵称</text>
-          <input type="nickname" class="nickname-input" placeholder="请输入昵称" bind:change="onInputChange" />
-        </view>
-      </block>
-      <block wx:elif="{{!hasUserInfo}}">
-        <button wx:if="{{canIUseGetUserProfile}}" bindtap="getUserProfile"> 获取头像昵称 </button>
-        <view wx:else> 请使用2.10.4及以上版本基础库 </view>
-      </block>
-      <block wx:else>
-        <image bindtap="bindViewTap" class="userinfo-avatar" src="{{userInfo.avatarUrl}}" mode="cover"></image>
-        <text class="userinfo-nickname">{{userInfo.nickName}}</text>
-      </block>
+<!--index.wxml - BluFi 配网管理页面-->
+<view class="container">
+  <!-- 未连接：显示设备扫描 -->
+  <view wx:if="{{!connected}}">
+    <!-- 蓝牙未开启 -->
+    <view class="section" wx:if="{{!bluetoothEnabled}}">
+      <view class="empty-state">
+        <text class="icon">📱</text>
+        <text class="title">请打开蓝牙</text>
+        <text class="desc">需要使用蓝牙连接设备</text>
+        <button class="btn-primary" bindtap="openBluetooth">打开蓝牙</button>
+      </view>
     </view>
-    <view class="usermotto">
-      <text class="user-motto">{{motto}}</text>
+
+    <!-- 设备列表 -->
+    <view class="section" wx:if="{{bluetoothEnabled}}">
+      <view class="section-header">
+        <text class="section-title">📡 附近的设备</text>
+        <button class="btn-small" bindtap="rescan" disabled="{{scanning}}">
+          {{scanning ? '扫描中...' : '刷新'}}
+        </button>
+      </view>
+
+      <view class="device-list">
+        <view class="device-item" wx:for="{{devices}}" wx:key="deviceId" 
+              bindtap="connectDevice" data-device="{{item}}">
+          <view class="device-info">
+            <text class="device-name">{{item.name}}</text>
+            <text class="device-id">{{item.deviceId}}</text>
+          </view>
+          <view class="device-action">
+            <text class="rssi">{{item.RSSI}}dBm</text>
+            <text class="arrow">›</text>
+          </view>
+        </view>
+
+        <view class="empty-tip" wx:if="{{devices.length === 0 && !scanning}}">
+          <text>未发现设备</text>
+          <text class="tip-small">请确保设备已开机并处于配网模式</text>
+        </view>
+      </view>
     </view>
   </view>
-</scroll-view>
+
+  <!-- 已连接：显示设备状态管理 -->
+  <view wx:if="{{connected}}">
+    <!-- 设备信息卡片 -->
+    <view class="device-card">
+      <view class="card-header">
+        <view class="device-info">
+          <text class="device-name">📱 {{connectedDevice.name}}</text>
+          <text class="status-badge connected">已连接</text>
+        </view>
+        <button class="btn-small btn-danger" bindtap="disconnect">断开</button>
+      </view>
+    </view>
+
+    <!-- WiFi状态卡片 -->
+    <view class="section">
+      <view class="section-header">
+        <text class="section-title">📶 WiFi状态</text>
+        <button class="btn-small" bindtap="refreshDeviceStatus">刷新</button>
+      </view>
+
+      <view class="wifi-status-card" wx:if="{{deviceWifiStatus}}">
+        <view class="status-row">
+          <text class="label">连接状态</text>
+          <text class="value {{deviceWifiStatus.connected ? 'success' : 'error'}}">
+            {{deviceWifiStatus.connected ? '✓ 已连接' : '✗ 未连接'}}
+          </text>
+        </view>
+
+        <view class="status-row" wx:if="{{deviceWifiStatus.ssid}}">
+          <text class="label">WiFi名称</text>
+          <text class="value">{{deviceWifiStatus.ssid}}</text>
+        </view>
+
+        <view class="status-row" wx:if="{{deviceWifiStatus.connected}}">
+          <text class="label">操作模式</text>
+          <text class="value">
+            {{deviceWifiStatus.opmode === 1 ? 'STA' : deviceWifiStatus.opmode === 2 ? 'AP' : 'STA+AP'}}
+          </text>
+        </view>
+
+        <view class="status-actions" wx:if="{{deviceWifiStatus.connected}}">
+          <button class="btn-small btn-danger" bindtap="disconnectDeviceWifi">断开WiFi</button>
+        </view>
+      </view>
+
+      <view class="empty-tip" wx:if="{{!deviceWifiStatus}}">
+        <text>正在获取状态...</text>
+      </view>
+    </view>
+
+    <!-- 存储的WiFi配置 -->
+    <view class="section">
+      <view class="section-header">
+        <text class="section-title">💾 存储的配置</text>
+        <button class="btn-small" bindtap="getStoredConfig">刷新</button>
+      </view>
+
+      <!-- 配置列表 -->
+      <view class="stored-config-list" wx:if="{{storedConfig && storedConfig.exists && storedConfig.configs.length > 0}}">
+        <view class="stored-config-item" wx:for="{{storedConfig.configs}}" wx:key="index">
+          <view class="config-info">
+            <view class="config-main">
+              <text class="config-ssid">{{item.ssid}}</text>
+              <text class="config-pwd">{{item.password}}</text>
+            </view>
+          </view>
+          
+          <view class="config-actions">
+            <button class="btn-small btn-primary" 
+                    bindtap="connectWithStoredConfig" 
+                    data-config="{{item}}">
+              使用
+            </button>
+            <button class="btn-small btn-danger" 
+                    bindtap="deleteStoredConfig" 
+                    data-index="{{item.index}}"
+                    data-ssid="{{item.ssid}}">
+              删除
+            </button>
+          </view>
+        </view>
+      </view>
+
+      <view class="empty-tip" wx:if="{{storedConfig && !storedConfig.exists}}">
+        <text>设备未存储WiFi配置</text>
+      </view>
+
+      <view class="empty-tip" wx:if="{{!storedConfig}}">
+        <text>正在获取配置...</text>
+      </view>
+    </view>
+
+    <!-- WiFi配置区域 -->
+    <view class="section">
+      <view class="section-header">
+        <text class="section-title">🔧 配置WiFi</text>
+        <button class="btn-small" bindtap="scanWifi">扫描</button>
+      </view>
+
+      <!-- 密码输入（放在WiFi列表上面） -->
+      <view class="config-form" wx:if="{{selectedWifi}}">
+        <view class="form-item">
+          <text class="form-label">已选择</text>
+          <text class="form-value">{{selectedWifi.ssid}}</text>
+        </view>
+
+        <view class="form-item" wx:if="{{selectedWifi.secure}}">
+          <text class="form-label">WiFi密码</text>
+          <input class="form-input" 
+                 type="text" 
+                 password="{{true}}"
+                 placeholder="请输入WiFi密码" 
+                 bindinput="onPasswordInput"
+                 value="{{wifiPassword}}" />
+        </view>
+
+        <button class="btn-primary" 
+                bindtap="configWifi" 
+                disabled="{{configuring}}">
+          {{configuring ? '配置中...' : '开始配网'}}
+        </button>
+
+        <!-- 配置结果 -->
+        <view class="result-tip success" wx:if="{{configResult === 'success'}}">
+          <text>✓ 配置成功！设备已连接到WiFi</text>
+        </view>
+        <view class="result-tip error" wx:if="{{configResult === 'fail'}}">
+          <text>✗ 配置失败，请检查密码后重试</text>
+        </view>
+      </view>
+
+      <!-- WiFi列表 -->
+      <view class="wifi-list" wx:if="{{wifiList.length > 0}}">
+        <view class="wifi-item {{selectedWifi && selectedWifi.ssid === item.ssid ? 'selected' : ''}}" 
+              wx:for="{{wifiList}}" wx:key="ssid"
+              bindtap="selectWifi" data-wifi="{{item}}">
+          <view class="wifi-info">
+            <text class="wifi-ssid">{{item.ssid}}</text>
+            <text class="wifi-secure">{{item.secure ? '🔒' : ''}}</text>
+          </view>
+          <view class="wifi-signal">
+            <text class="rssi">{{item.rssi}}dBm</text>
+          </view>
+        </view>
+      </view>
+
+      <view class="empty-tip" wx:if="{{wifiList.length === 0}}">
+        <text>点击"扫描"按钮查找附近WiFi</text>
+      </view>
+    </view>
+  </view>
+</view>

@@ -7,6 +7,8 @@
 #include "app_blufi.h"
 #include "xn_blufi.h"
 #include "esp_log.h"
+#include "esp_blufi_api.h"
+#include "esp_wifi.h"
 
 static const char *TAG = "APP_BLUFI"; // 日志标签
 static xn_blufi_t *g_blufi = NULL;    // BluFi实例
@@ -14,28 +16,46 @@ static xn_blufi_t *g_blufi = NULL;    // BluFi实例
 /* WiFi状态变化回调函数 */
 static void wifi_status_callback(xn_wifi_status_t status)
 {
+    wifi_mode_t mode;
+    esp_wifi_get_mode(&mode);
+    
     switch(status) {
         case XN_WIFI_DISCONNECTED:
             ESP_LOGW(TAG, "❌ WiFi未连接");
+            esp_blufi_send_wifi_conn_report(mode, ESP_BLUFI_STA_CONN_FAIL, 0, NULL);
             break;
             
         case XN_WIFI_CONNECTING:
             ESP_LOGI(TAG, "🔄 WiFi连接中...");
+            esp_blufi_send_wifi_conn_report(mode, ESP_BLUFI_STA_CONNECTING, 0, NULL);
             break;
             
         case XN_WIFI_CONNECTED:
             ESP_LOGI(TAG, "📶 WiFi已连接");
             break;
             
-        case XN_WIFI_GOT_IP:
+        case XN_WIFI_GOT_IP: {
             ESP_LOGI(TAG, "✅ WiFi配网成功，已获取IP地址！");
-            // 配网成功后保存配置到NVS
-            xn_wifi_config_t config;
-            if (xn_blufi_wifi_load(g_blufi, &config) == ESP_OK) {
-                xn_blufi_wifi_save(g_blufi, config.ssid, config.password);
-                ESP_LOGI(TAG, "WiFi配置已保存到NVS");
+            
+            // 发送连接成功状态
+            esp_blufi_extra_info_t info = {0};
+            esp_blufi_send_wifi_conn_report(mode, ESP_BLUFI_STA_CONN_SUCCESS, 0, &info);
+            
+            // 获取当前连接的WiFi配置并保存到NVS
+            wifi_config_t wifi_config;
+            if (esp_wifi_get_config(WIFI_IF_STA, &wifi_config) == ESP_OK) {
+                const char *ssid = (const char *)wifi_config.sta.ssid;
+                const char *password = (const char *)wifi_config.sta.password;
+                
+                esp_err_t ret = xn_blufi_wifi_save(g_blufi, ssid, password);
+                if (ret == ESP_OK) {
+                    ESP_LOGI(TAG, "💾 WiFi配置已保存到NVS: %s", ssid);
+                } else {
+                    ESP_LOGE(TAG, "保存WiFi配置失败: %s", esp_err_to_name(ret));
+                }
             }
             break;
+        }
     }
 }
 

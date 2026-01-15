@@ -216,7 +216,8 @@ void xn_blufi_dh_negotiate_data_handler(uint8_t *data, int len,
 int xn_blufi_aes_encrypt(uint8_t iv8, uint8_t *crypt_data, int crypt_len)
 {
     if (g_security == NULL) { // 安全层未初始化
-        return -1;
+        ESP_LOGW(TAG, "安全层未初始化，跳过加密");
+        return 0; // 返回成功，不加密
     }
     
     size_t iv_offset = 0;
@@ -242,7 +243,8 @@ int xn_blufi_aes_encrypt(uint8_t iv8, uint8_t *crypt_data, int crypt_len)
 int xn_blufi_aes_decrypt(uint8_t iv8, uint8_t *crypt_data, int crypt_len)
 {
     if (g_security == NULL) { // 安全层未初始化
-        return -1;
+        ESP_LOGW(TAG, "安全层未初始化，跳过解密");
+        return 0; // 返回成功，不解密
     }
     
     size_t iv_offset = 0;
