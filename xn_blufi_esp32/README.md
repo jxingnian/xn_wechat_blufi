@@ -10,10 +10,12 @@ xn_blufi_esp32/
 │   └── xn_blufi/              # BluFi配网组件
 │       ├── include/
 │       │   ├── xn_blufi.h           # 公共API头文件
-│       │   └── xn_blufi_internal.h  # 内部头文件
-│       ├── xn_blufi.c               # 主要实现
-│       ├── xn_blufi_security.c      # 安全层实现
-│       ├── xn_blufi_gatt.c          # GATT服务器实现
+│       │   ├── xn_blufi_internal.h  # 内部头文件
+│       │   ├── xn_wifi_manager.h    # WiFi管理器头文件
+│       │   └── xn_wifi_storage.h    # WiFi存储层头文件
+│       ├── xn_blufi.c               # BluFi协调层实现
+│       ├── xn_wifi_manager.c        # WiFi管理层实现
+│       ├── xn_wifi_storage.c        # WiFi存储层实现
 │       ├── CMakeLists.txt           # 组件构建配置
 │       └── README.md                # 组件使用文档
 ├── main/
@@ -76,11 +78,13 @@ idf.py -p COM3 monitor
 
 - ✅ 蓝牙接收WiFi配置
 - ✅ WiFi自动连接和重连
-- ✅ WiFi配置持久化存储（NVS）
+- ✅ 多WiFi配置持久化存储（NVS，最多10个）
 - ✅ WiFi扫描功能
-- ✅ 安全加密传输（DH密钥交换 + AES加密）
 - ✅ 使用NimBLE低功耗蓝牙协议栈
 - ✅ 状态回调通知
+- ✅ 模块化三层架构（存储层、WiFi管理层、BluFi协调层）
+
+⚠️ **安全提示**：本项目使用明文传输WiFi配置，仅适用于内网环境或可信设备间通信。
 
 ### API列表
 
@@ -105,6 +109,16 @@ g_blufi = xn_blufi_create("你的设备名");
 星年 (jixingnian@gmail.com)
 
 ## 更新日志
+
+### v2.0.0 (2025-01-15)
+- 🗑️ 移除加密功能，使用明文传输（仅适用于内网环境）
+- ✨ 实现多WiFi配置存储（最多10个）
+- ✨ 重构为模块化三层架构（存储层、WiFi管理层、BluFi协调层）
+- ✨ 支持WiFi配置的增删改查
+- ✨ 微信小程序完整UI实现
+- 🐛 修复蓝牙断开重连问题
+- 🐛 修复安卓BLE分包问题
+- 📝 更新文档，移除加密相关说明
 
 ### v1.0.0 (2025-01-14)
 - ✨ 初始版本发布

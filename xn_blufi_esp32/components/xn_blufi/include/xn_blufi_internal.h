@@ -1,7 +1,7 @@
 /*
  * @Author: 星年 jixingnian@gmail.com
  * @Date: 2025-01-14
- * @Description: BluFi内部头文件 - 安全层相关函数声明
+ * @Description: BluFi内部头文件 - NimBLE相关函数声明
  */
 
 #ifndef XN_BLUFI_INTERNAL_H
@@ -14,26 +14,6 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-/* DH密钥协商数据处理函数 */
-void xn_blufi_dh_negotiate_data_handler(uint8_t *data, int len, 
-                                        uint8_t **output_data, int *output_len, 
-                                        bool *need_free);
-
-/* AES加密函数 */
-int xn_blufi_aes_encrypt(uint8_t iv8, uint8_t *crypt_data, int crypt_len);
-
-/* AES解密函数 */
-int xn_blufi_aes_decrypt(uint8_t iv8, uint8_t *crypt_data, int crypt_len);
-
-/* CRC校验函数 */
-uint16_t xn_blufi_crc_checksum(uint8_t iv8, uint8_t *data, int len);
-
-/* 初始化安全层 */
-int xn_blufi_security_init(void);
-
-/* 反初始化安全层 */
-void xn_blufi_security_deinit(void);
 
 /* NimBLE重置回调 */
 void xn_blufi_on_reset(int reason);

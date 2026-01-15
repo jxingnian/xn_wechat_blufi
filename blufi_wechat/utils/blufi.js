@@ -1,9 +1,9 @@
 /**
  * BluFi 协议处理模块
  * 基于 ESP-IDF BluFi 协议实现
+ * 
+ * ⚠️ 注意：本实现使用明文传输，仅适用于内网环境
  */
-
-const BluFiCrypto = require('./blufi_crypto.js')
 
 // BluFi 服务和特征值 UUID
 const BLUFI_SERVICE_UUID = '0000FFFF-0000-1000-8000-00805F9B34FB'
@@ -64,9 +64,6 @@ class BluFiProtocol {
     this.sequence = 0
     this.receiveBuffer = []
     this.callbacks = {}
-    this.crypto = new BluFiCrypto()
-    this.securityEnabled = false
-    this.negotiationComplete = false
     
     // 分包重组缓冲区
     this.fragmentBuffer = null
@@ -183,44 +180,6 @@ class BluFiProtocol {
   }
 
   // 开始密钥协商
-  startNegotiation() {
-    return new Promise((resolve, reject) => {
-      console.log('=== 开始密钥协商 ===')
-      
-      // 生成 DH 密钥对
-      this.crypto.generatePrivateKey()
-      const publicKey = this.crypto.generatePublicKey()
-      
-      console.log('客户端公钥已生成，长度:', publicKey.length)
-      console.log('公钥前16字节:', publicKey.slice(0, 16))
-      
-      // 构建协商数据：类型(1字节) + 公钥(128字节)
-      // SEC_TYPE_DH_PUBLIC = 0x04
-      const negotiationData = [0x04, ...publicKey]
-      
-      // 发送公钥到设备
-      const frame = this.buildFrame(BLUFI_TYPE_DATA, BLUFI_DATA_SUBTYPE_NEG, negotiationData)
-      const frameData = new Uint8Array(frame)
-      console.log('发送帧头:', Array.from(frameData.slice(0, 8)))
-      console.log('帧总长度:', frameData.length)
-      
-      this.sendData(frame)
-        .then(() => {
-          console.log('公钥已发送，等待服务器响应...')
-          // 等待服务器返回公钥
-          this.negotiationCallback = resolve
-          
-          // 设置超时
-          setTimeout(() => {
-            if (!this.negotiationComplete) {
-              reject(new Error('密钥协商超时'))
-            }
-          }, 5000)
-        })
-        .catch(reject)
-    })
-  }
-
   // 处理通知数据
   handleNotify(buffer) {
     const data = new Uint8Array(buffer)
@@ -295,27 +254,6 @@ class BluFiProtocol {
     
     console.log('Payload原始数据（前20字节）:', Array.from(payload.slice(0, 20)))
     
-    // 检查是否需要解密
-    if ((fc & BLUFI_FC_ENC) && this.securityEnabled) {
-      console.log('解密数据...')
-      payload = this.crypto.aesDecrypt(payload)
-    } else if (fc & BLUFI_FC_ENC) {
-      console.warn('⚠️ 数据有加密标志但加密未启用，数据可能无法正确解析')
-    }
-    
-    // 检查校验和
-    if (fc & BLUFI_FC_CHECK) {
-      const checksumOffset = 4 + dataLen
-      if (data.length >= checksumOffset + 2) {
-        const receivedChecksum = data[checksumOffset] | (data[checksumOffset + 1] << 8)
-        const calculatedChecksum = this.crypto.crc16(data.slice(0, checksumOffset))
-        console.log('校验和:', {
-          received: receivedChecksum,
-          calculated: calculatedChecksum
-        })
-      }
-    }
-    
     return {
       type: type,
       subtype: subtype,
@@ -332,10 +270,6 @@ class BluFiProtocol {
     
     if (frame.type === BLUFI_TYPE_DATA) {
       switch (frame.subtype) {
-        case BLUFI_DATA_SUBTYPE_NEG:
-          // 收到服务器公钥
-          this.handleNegotiation(frame.payload)
-          break
         case BLUFI_DATA_SUBTYPE_WIFI_LIST:
           this.handleWifiList(frame.payload)
           break
@@ -353,45 +287,6 @@ class BluFiProtocol {
   }
 
   // 处理密钥协商
-  handleNegotiation(payload) {
-    console.log('收到协商数据，长度:', payload.length)
-    
-    if (payload.length < 2) {
-      console.error('协商数据太短')
-      return
-    }
-    
-    const type = payload[0]
-    console.log('协商数据类型:', type)
-    
-    // SEC_TYPE_DH_PUBLIC = 0x04
-    if (type === 0x04) {
-      const serverPublicKey = Array.from(payload.slice(1))
-      console.log('收到服务器公钥，长度:', serverPublicKey.length)
-      
-      try {
-        // 计算共享密钥
-        this.crypto.computeSharedKey(serverPublicKey)
-        this.negotiationComplete = true
-        this.securityEnabled = true
-        
-        console.log('✓ 密钥协商完成，加密已启用')
-        
-        if (this.negotiationCallback) {
-          this.negotiationCallback()
-          this.negotiationCallback = null
-        }
-      } catch (err) {
-        console.error('密钥协商失败:', err)
-        if (this.negotiationCallback) {
-          this.negotiationCallback(err)
-        }
-      }
-    } else {
-      console.warn('未知的协商数据类型:', type)
-    }
-  }
-
   // 处理WiFi列表
   handleWifiList(payload) {
     console.log('=== 开始解析WiFi列表 ===')
@@ -610,18 +505,7 @@ class BluFiProtocol {
     let fc = 0
     let actualPayload = payload
     
-    // 如果安全已启用且不是协商帧，则加密
-    if (this.securityEnabled && subtype !== BLUFI_DATA_SUBTYPE_NEG) {
-      fc |= BLUFI_FC_ENC
-      fc |= BLUFI_FC_CHECK
-      
-      // 加密 payload
-      if (payload.length > 0) {
-        actualPayload = Array.from(this.crypto.aesEncrypt(new Uint8Array(payload)))
-      }
-    }
-    
-    const frameLen = 4 + actualPayload.length + (fc & BLUFI_FC_CHECK ? 2 : 0)
+    const frameLen = 4 + actualPayload.length
     const frame = new Uint8Array(frameLen)
     
     frame[0] = (subtype << 2) | type
@@ -631,13 +515,6 @@ class BluFiProtocol {
     
     if (actualPayload.length > 0) {
       frame.set(actualPayload, 4)
-    }
-    
-    // 添加校验和
-    if (fc & BLUFI_FC_CHECK) {
-      const checksum = this.crypto.crc16(frame.slice(0, 4 + actualPayload.length))
-      frame[4 + actualPayload.length] = checksum & 0xFF
-      frame[4 + actualPayload.length + 1] = (checksum >> 8) & 0xFF
     }
     
     this.sequence++  // 发送后再自增
@@ -781,8 +658,6 @@ class BluFiProtocol {
             this.deviceId = null
             // 重置序列号和状态
             this.sequence = 0
-            this.securityEnabled = false
-            this.negotiationComplete = false
             this.receiveBuffer = []
             // 清空分包缓冲区
             this.fragmentBuffer = null

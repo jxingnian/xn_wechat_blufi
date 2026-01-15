@@ -127,13 +127,11 @@ static void blufi_event_callback(esp_blufi_cb_event_t event, esp_blufi_cb_param_
             ESP_LOGI(TAG, "蓝牙已连接");
             blufi->ble_connected = true;
             esp_blufi_adv_stop();
-            xn_blufi_security_init();
             break;
             
         case ESP_BLUFI_EVENT_BLE_DISCONNECT:
             ESP_LOGI(TAG, "蓝牙断开连接");
             blufi->ble_connected = false;
-            xn_blufi_security_deinit();
             esp_blufi_adv_start();
             break;
             
@@ -271,10 +269,10 @@ static void blufi_event_callback(esp_blufi_cb_event_t event, esp_blufi_cb_param_
 /* BluFi回调函数结构体 */
 static esp_blufi_callbacks_t blufi_callbacks = {
     .event_cb = blufi_event_callback,
-    .negotiate_data_handler = xn_blufi_dh_negotiate_data_handler,
-    .encrypt_func = xn_blufi_aes_encrypt,
-    .decrypt_func = xn_blufi_aes_decrypt,
-    .checksum_func = xn_blufi_crc_checksum,
+    .negotiate_data_handler = NULL,
+    .encrypt_func = NULL,
+    .decrypt_func = NULL,
+    .checksum_func = NULL,
 };
 
 /* 创建BluFi实例 */
