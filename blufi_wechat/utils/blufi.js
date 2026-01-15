@@ -67,6 +67,10 @@ class BluFiProtocol {
     this.crypto = new BluFiCrypto()
     this.securityEnabled = false
     this.negotiationComplete = false
+    
+    // 分包重组缓冲区
+    this.fragmentBuffer = null
+    this.fragmentExpectedLength = 0
   }
 
   // 连接设备
@@ -78,6 +82,19 @@ class BluFiProtocol {
         deviceId: deviceId,
         success: () => {
           console.log('BLE连接成功')
+          
+          // 尝试设置更大的MTU（仅安卓有效）
+          wx.setBLEMTU({
+            deviceId: deviceId,
+            mtu: 512,
+            success: (res) => {
+              console.log('✓ MTU已设置为:', res.mtu)
+            },
+            fail: (err) => {
+              console.log('MTU设置失败（iOS不支持）:', err.errMsg)
+            }
+          })
+          
           // 延迟获取服务，确保连接稳定
           setTimeout(() => {
             this.discoverServices().then(resolve).catch(reject)
@@ -209,12 +226,38 @@ class BluFiProtocol {
     const data = new Uint8Array(buffer)
     console.log('>>> 收到通知，长度:', data.length, '数据:', Array.from(data).slice(0, 20))
     
+    // 如果有未完成的分包，继续拼接
+    if (this.fragmentBuffer) {
+      console.log('>>> 拼接分包数据，原长度:', this.fragmentBuffer.length, '新数据:', data.length)
+      const combined = new Uint8Array(this.fragmentBuffer.length + data.length)
+      combined.set(this.fragmentBuffer)
+      combined.set(data, this.fragmentBuffer.length)
+      this.fragmentBuffer = combined
+      
+      console.log('>>> 当前缓冲区长度:', this.fragmentBuffer.length, '期望长度:', this.fragmentExpectedLength)
+      
+      // 检查是否已接收完整
+      if (this.fragmentBuffer.length >= this.fragmentExpectedLength) {
+        console.log('✓ 分包接收完成，开始解析')
+        const frame = this.parseFrame(this.fragmentBuffer)
+        this.fragmentBuffer = null
+        this.fragmentExpectedLength = 0
+        
+        if (frame) {
+          this.handleFrame(frame)
+        }
+      } else {
+        console.log('>>> 继续等待分包，还需要:', this.fragmentExpectedLength - this.fragmentBuffer.length, '字节')
+      }
+      return
+    }
+    
     // 解析 BluFi 帧
     const frame = this.parseFrame(data)
     if (frame) {
       this.handleFrame(frame)
-    } else {
-      console.warn('帧解析失败')
+    } else if (!this.fragmentBuffer) {
+      console.warn('帧解析失败且未启动分包缓冲')
     }
   }
 
@@ -237,8 +280,14 @@ class BluFiProtocol {
       totalLen: data.length
     })
     
-    if (data.length < 4 + dataLen) {
-      console.warn('帧数据不完整')
+    const expectedLen = 4 + dataLen + (fc & BLUFI_FC_CHECK ? 2 : 0)
+    
+    if (data.length < expectedLen) {
+      console.warn('帧数据不完整，需要:', expectedLen, '当前:', data.length)
+      // 保存到分包缓冲区
+      this.fragmentBuffer = new Uint8Array(data)
+      this.fragmentExpectedLength = expectedLen
+      console.log('等待后续分包...')
       return null
     }
     
@@ -735,6 +784,9 @@ class BluFiProtocol {
             this.securityEnabled = false
             this.negotiationComplete = false
             this.receiveBuffer = []
+            // 清空分包缓冲区
+            this.fragmentBuffer = null
+            this.fragmentExpectedLength = 0
             console.log('✓ 连接已断开，状态已重置')
             resolve()
           },

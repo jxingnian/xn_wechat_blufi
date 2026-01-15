@@ -1,41 +1,34 @@
 {
-  "compileType": "miniprogram",
-  "libVersion": "3.13.2",
-  "packOptions": {
-    "ignore": [],
-    "include": []
-  },
   "setting": {
-    "coverView": true,
     "es6": true,
-    "postcss": true,
-    "minified": true,
+    "postcss": false,
+    "compileWorklet": false,
+    "minified": false,
+    "uglifyFileName": false,
+    "uploadWithSourceMap": true,
     "enhance": true,
-    "showShadowRootInWxmlPanel": true,
+    "packNpmManually": false,
     "packNpmRelationList": [],
+    "minifyWXSS": true,
+    "minifyWXML": true,
+    "localPlugins": false,
+    "disableUseStrict": false,
+    "useCompilerPlugins": false,
+    "condition": false,
+    "swc": false,
+    "disableSWC": true,
     "babelSetting": {
       "ignore": [],
       "disablePlugins": [],
       "outputPath": ""
-    },
-    "compileWorklet": false,
-    "uglifyFileName": false,
-    "uploadWithSourceMap": true,
-    "packNpmManually": false,
-    "minifyWXSS": true,
-    "minifyWXML": true,
-    "localPlugins": false,
-    "condition": false,
-    "swc": false,
-    "disableSWC": true,
-    "disableUseStrict": false,
-    "useCompilerPlugins": false
+    }
   },
-  "condition": {},
-  "editorSetting": {
-    "tabIndent": "auto",
-    "tabSize": 2
+  "compileType": "miniprogram",
+  "simulatorPluginLibVersion": {},
+  "packOptions": {
+    "ignore": [],
+    "include": []
   },
-  "appid": "wx8e8c9da8f5fc7d32",
-  "simulatorPluginLibVersion": {}
+  "appid": "wxd04ebd9d3f1375de",
+  "editorSetting": {}
 }
