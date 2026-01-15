@@ -37,16 +37,21 @@ static void wifi_status_callback(xn_wifi_status_t status)
         case XN_WIFI_GOT_IP: {
             ESP_LOGI(TAG, "✅ WiFi配网成功，已获取IP地址！");
             
-            // 发送连接成功状态
-            esp_blufi_extra_info_t info = {0};
-            esp_blufi_send_wifi_conn_report(mode, ESP_BLUFI_STA_CONN_SUCCESS, 0, &info);
-            
-            // 获取当前连接的WiFi配置并保存到NVS
+            // 获取当前连接的WiFi配置
             wifi_config_t wifi_config;
             if (esp_wifi_get_config(WIFI_IF_STA, &wifi_config) == ESP_OK) {
                 const char *ssid = (const char *)wifi_config.sta.ssid;
                 const char *password = (const char *)wifi_config.sta.password;
                 
+                // 发送连接成功状态（包含SSID）
+                esp_blufi_extra_info_t info = {0};
+                info.sta_ssid = wifi_config.sta.ssid;
+                info.sta_ssid_len = strlen(ssid);
+                esp_blufi_send_wifi_conn_report(mode, ESP_BLUFI_STA_CONN_SUCCESS, 0, &info);
+                
+                ESP_LOGI(TAG, "📡 已发送WiFi状态到小程序: %s", ssid);
+                
+                // 保存到NVS
                 esp_err_t ret = xn_blufi_wifi_save(g_blufi, ssid, password);
                 if (ret == ESP_OK) {
                     ESP_LOGI(TAG, "💾 WiFi配置已保存到NVS: %s", ssid);

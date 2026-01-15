@@ -378,25 +378,48 @@ class BluFiProtocol {
     }
     
     // 解析额外信息（如果有）
+    // 根据ESP-IDF BluFi协议文档，额外信息使用Data Frame的子类型编码：
+    // 0x01 = STA BSSID
+    // 0x02 = STA SSID  
+    // 0x03 = STA Password
+    // 0x04 = SoftAP SSID
+    // 0x05 = SoftAP Password
     let offset = 3
     while (offset < payload.length) {
       const type = payload[offset++]
       const len = payload[offset++]
       
-      if (offset + len > payload.length) break
+      console.log(`  额外信息 - type: ${type}, len: ${len}, offset: ${offset}`)
+      
+      if (offset + len > payload.length) {
+        console.warn('额外信息长度超出范围')
+        break
+      }
       
       const data = payload.slice(offset, offset + len)
       offset += len
       
       switch(type) {
-        case 0x00: // SSID
-          status.ssid = this.bytesToString(data)
-          break
-        case 0x01: // Password
-          status.password = this.bytesToString(data)
-          break
-        case 0x02: // BSSID
+        case 0x01: // STA BSSID
           status.bssid = Array.from(data).map(b => b.toString(16).padStart(2, '0')).join(':')
+          console.log('  解析到BSSID:', status.bssid)
+          break
+        case 0x02: // STA SSID
+          status.ssid = this.bytesToString(data)
+          console.log('  解析到SSID:', status.ssid)
+          break
+        case 0x03: // STA Password
+          status.password = this.bytesToString(data)
+          console.log('  解析到Password')
+          break
+        case 0x04: // SoftAP SSID
+          console.log('  SoftAP SSID (忽略)')
+          break
+        case 0x05: // SoftAP Password
+          console.log('  SoftAP Password (忽略)')
+          break
+        default:
+          console.warn('  未知的额外信息类型:', type)
           break
       }
     }

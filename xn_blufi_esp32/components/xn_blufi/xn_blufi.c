@@ -166,8 +166,18 @@ static void blufi_event_callback(esp_blufi_cb_event_t event, esp_blufi_cb_param_
             esp_wifi_get_mode(&mode);
             
             xn_wifi_status_t status = xn_wifi_manager_get_status(blufi->wifi_manager);
+            esp_blufi_extra_info_t info = {0};
+            
+            // 如果已连接，获取当前连接的WiFi信息
             if (status == XN_WIFI_GOT_IP) {
-                esp_blufi_extra_info_t info = {0};
+                wifi_config_t wifi_config;
+                if (esp_wifi_get_config(WIFI_IF_STA, &wifi_config) == ESP_OK) {
+                    // 设置SSID
+                    info.sta_ssid_len = strlen((char*)wifi_config.sta.ssid);
+                    info.sta_ssid = wifi_config.sta.ssid;
+                    
+                    ESP_LOGI(TAG, "当前连接的WiFi: %s", wifi_config.sta.ssid);
+                }
                 esp_blufi_send_wifi_conn_report(mode, ESP_BLUFI_STA_CONN_SUCCESS, 0, &info);
             } else if (status == XN_WIFI_CONNECTING) {
                 esp_blufi_send_wifi_conn_report(mode, ESP_BLUFI_STA_CONNECTING, 0, NULL);
