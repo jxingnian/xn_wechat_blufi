@@ -4,5 +4,5 @@
 
 ## 项目结构
 
-- `xn_blefi_esp32/` - ESP32 固件项目
-- `blefi_wechat/` - 微信小程序项目
+- `xn_blufi_esp32/` - ESP32 固件项目
+- `blufi_wechat/` - 微信小程序项目

@@ -5,7 +5,7 @@
 ## 项目结构
 
 ```
-xn_blefi_esp32/
+xn_blufi_esp32/
 ├── components/
 │   └── xn_blufi/              # BluFi配网组件
 │       ├── include/
