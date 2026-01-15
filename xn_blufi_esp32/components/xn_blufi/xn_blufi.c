@@ -516,3 +516,12 @@ void xn_blufi_wifi_register_status_cb(xn_blufi_t *blufi, xn_wifi_status_cb_t cal
         xn_wifi_manager_register_status_cb(blufi->wifi_manager, callback);
     }
 }
+
+/* 获取蓝牙连接状态 */
+bool xn_blufi_is_ble_connected(xn_blufi_t *blufi)
+{
+    if (blufi == NULL) {
+        return false;
+    }
+    return blufi->ble_connected;
+}

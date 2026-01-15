@@ -75,6 +75,27 @@ class BluFiProtocol {
     return new Promise((resolve, reject) => {
       this.deviceId = deviceId
       
+      // 重置序列号和状态（重要！）
+      this.sequence = 0
+      this.receiveBuffer = []
+      this.fragmentBuffer = null
+      this.fragmentExpectedLength = 0
+      console.log('✓ 序列号已重置为0')
+      
+      // 监听蓝牙连接状态变化
+      wx.onBLEConnectionStateChange((res) => {
+        console.log('蓝牙连接状态变化:', res)
+        if (res.deviceId === this.deviceId) {
+          if (!res.connected) {
+            console.log('⚠️ 蓝牙连接已断开')
+            // 触发断开回调
+            if (this.callbacks.onDisconnected) {
+              this.callbacks.onDisconnected()
+            }
+          }
+        }
+      })
+      
       wx.createBLEConnection({
         deviceId: deviceId,
         success: () => {
@@ -172,7 +193,13 @@ class BluFiProtocol {
           console.log('通知已启用')
           // 暂时禁用加密，直接完成连接
           console.log('⚠️ 加密已禁用（调试模式）')
-          resolve()
+          
+          // 延迟500ms，确保ESP32端完全准备好
+          // 避免序列号不同步问题
+          setTimeout(() => {
+            console.log('✓ BluFi连接完全建立，可以开始通信')
+            resolve()
+          }, 500)
         },
         fail: reject
       })
@@ -434,7 +461,30 @@ class BluFiProtocol {
   // 处理错误
   handleError(payload) {
     const errorCode = payload[0]
-    console.error('BluFi错误:', errorCode)
+    
+    // 错误码定义（根据ESP-IDF BluFi协议）
+    const errorMessages = {
+      0x00: '序列号错误',
+      0x01: '校验和错误',
+      0x02: '解密错误',
+      0x03: '加密错误',
+      0x04: '初始化安全错误',
+      0x05: 'DH内存分配错误',
+      0x06: 'DH参数错误',
+      0x07: '读取参数错误',
+      0x08: '生成公钥错误'
+    }
+    
+    const errorMsg = errorMessages[errorCode] || `未知错误(${errorCode})`
+    console.error('BluFi错误:', errorMsg)
+    
+    // 如果是序列号错误，重置序列号
+    if (errorCode === 0x00) {
+      console.warn('⚠️ 检测到序列号错误，重置序列号为0')
+      this.sequence = 0
+      // 不触发onError回调，因为已经自动修复
+      return
+    }
     
     if (this.callbacks.onError) {
       this.callbacks.onError(errorCode)

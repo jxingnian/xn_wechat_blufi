@@ -19,15 +19,24 @@ static void wifi_status_callback(xn_wifi_status_t status)
     wifi_mode_t mode;
     esp_wifi_get_mode(&mode);
     
+    // 检查蓝牙是否已连接
+    bool ble_connected = xn_blufi_is_ble_connected(g_blufi);
+    
     switch(status) {
         case XN_WIFI_DISCONNECTED:
             ESP_LOGW(TAG, "❌ WiFi未连接");
-            esp_blufi_send_wifi_conn_report(mode, ESP_BLUFI_STA_CONN_FAIL, 0, NULL);
+            // 只在蓝牙已连接时发送状态
+            if (ble_connected) {
+                esp_blufi_send_wifi_conn_report(mode, ESP_BLUFI_STA_CONN_FAIL, 0, NULL);
+            }
             break;
             
         case XN_WIFI_CONNECTING:
             ESP_LOGI(TAG, "🔄 WiFi连接中...");
-            esp_blufi_send_wifi_conn_report(mode, ESP_BLUFI_STA_CONNECTING, 0, NULL);
+            // 只在蓝牙已连接时发送状态
+            if (ble_connected) {
+                esp_blufi_send_wifi_conn_report(mode, ESP_BLUFI_STA_CONNECTING, 0, NULL);
+            }
             break;
             
         case XN_WIFI_CONNECTED:
@@ -43,13 +52,16 @@ static void wifi_status_callback(xn_wifi_status_t status)
                 const char *ssid = (const char *)wifi_config.sta.ssid;
                 const char *password = (const char *)wifi_config.sta.password;
                 
-                // 发送连接成功状态（包含SSID）
-                esp_blufi_extra_info_t info = {0};
-                info.sta_ssid = wifi_config.sta.ssid;
-                info.sta_ssid_len = strlen(ssid);
-                esp_blufi_send_wifi_conn_report(mode, ESP_BLUFI_STA_CONN_SUCCESS, 0, &info);
-                
-                ESP_LOGI(TAG, "📡 已发送WiFi状态到小程序: %s", ssid);
+                // 只在蓝牙已连接时发送状态
+                if (ble_connected) {
+                    // 发送连接成功状态（包含SSID）
+                    esp_blufi_extra_info_t info = {0};
+                    info.sta_ssid = wifi_config.sta.ssid;
+                    info.sta_ssid_len = strlen(ssid);
+                    esp_blufi_send_wifi_conn_report(mode, ESP_BLUFI_STA_CONN_SUCCESS, 0, &info);
+                    
+                    ESP_LOGI(TAG, "📡 已发送WiFi状态到小程序: %s", ssid);
+                }
                 
                 // 保存到NVS
                 esp_err_t ret = xn_blufi_wifi_save(g_blufi, ssid, password);

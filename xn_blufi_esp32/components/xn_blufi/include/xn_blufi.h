@@ -117,6 +117,13 @@ xn_wifi_status_t xn_blufi_wifi_get_status(xn_blufi_t *blufi);
  */
 void xn_blufi_wifi_register_status_cb(xn_blufi_t *blufi, xn_wifi_status_cb_t callback);
 
+/**
+ * @brief 获取蓝牙连接状态
+ * @param blufi 组件实例指针
+ * @return true表示已连接，false表示未连接
+ */
+bool xn_blufi_is_ble_connected(xn_blufi_t *blufi);
+
 #ifdef __cplusplus
 }
 #endif

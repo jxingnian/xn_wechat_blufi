@@ -84,6 +84,37 @@ Page({
       wx.showToast({ title: '操作失败', icon: 'none' })
     })
     
+    // 监听蓝牙断开
+    this.blufi.on('onDisconnected', () => {
+      console.log('蓝牙连接已断开')
+      
+      // 如果当前是已连接状态，显示断开提示
+      if (this.data.connected) {
+        wx.showToast({ 
+          title: '蓝牙已断开', 
+          icon: 'none',
+          duration: 2000
+        })
+        
+        // 重置状态
+        this.setData({
+          connected: false,
+          connectedDevice: null,
+          deviceWifiStatus: null,
+          wifiList: [],
+          selectedWifi: null,
+          wifiPassword: '',
+          configResult: null,
+          currentView: 'scan'
+        })
+        
+        // 重新开始扫描
+        setTimeout(() => {
+          this.startScan()
+        }, 1000)
+      }
+    })
+    
     this.checkBluetoothStatus()
   },
 
@@ -390,5 +421,24 @@ Page({
     if (view === 'scan') {
       this.startScan()
     }
+  },
+
+  // 页面卸载时清理资源
+  onUnload() {
+    console.log('页面卸载，清理蓝牙连接')
+    
+    // 断开蓝牙连接
+    if (this.blufi && this.data.connected) {
+      this.blufi.disconnect().catch(err => {
+        console.error('断开连接失败:', err)
+      })
+    }
+    
+    // 关闭蓝牙适配器
+    wx.closeBluetoothAdapter({
+      success: () => {
+        console.log('蓝牙适配器已关闭')
+      }
+    })
   }
 })
