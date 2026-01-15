@@ -345,11 +345,11 @@ esp_err_t xn_blufi_init(xn_blufi_t *blufi)
     // 配置NimBLE主机
     ble_hs_cfg.reset_cb = xn_blufi_on_reset;
     ble_hs_cfg.sync_cb = xn_blufi_on_sync;
-    ble_hs_cfg.gatts_register_cb = xn_blufi_gatt_svr_register_cb;
+    ble_hs_cfg.gatts_register_cb = esp_blufi_gatt_svr_register_cb;
     ble_hs_cfg.store_status_cb = ble_store_util_status_rr;
     
     // 初始化GATT服务器
-    ret = xn_blufi_gatt_svr_init();
+    ret = esp_blufi_gatt_svr_init();
     if (ret != 0) {
         ESP_LOGE(TAG, "初始化GATT服务器失败");
         return ESP_FAIL;
@@ -391,7 +391,7 @@ esp_err_t xn_blufi_deinit(xn_blufi_t *blufi)
     }
     
     // 反初始化GATT服务器
-    xn_blufi_gatt_svr_deinit();
+    esp_blufi_gatt_svr_deinit();
     
     // 停止NimBLE
     esp_err_t ret = nimble_port_stop();

@@ -41,15 +41,6 @@ void xn_blufi_on_reset(int reason);
 /* NimBLE同步回调 */
 void xn_blufi_on_sync(void);
 
-/* GATT服务器注册回调 */
-void xn_blufi_gatt_svr_register_cb(struct ble_gatt_register_ctxt *ctxt, void *arg);
-
-/* 初始化GATT服务器 */
-int xn_blufi_gatt_svr_init(void);
-
-/* 反初始化GATT服务器 */
-void xn_blufi_gatt_svr_deinit(void);
-
 /* NimBLE主机任务 */
 void xn_blufi_host_task(void *param);
 
