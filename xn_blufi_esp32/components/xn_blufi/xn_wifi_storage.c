@@ -99,10 +99,14 @@ esp_err_t xn_wifi_storage_load(xn_wifi_config_t *config)
     // 清空配置
     memset(config, 0, sizeof(xn_wifi_config_t));
     
-    // 打开NVS
+    // 打开NVS（如果命名空间不存在，返回 ESP_ERR_NVS_NOT_FOUND 是正常的）
     ret = nvs_open(NVS_NAMESPACE, NVS_READONLY, &nvs_handle);
-    if (ret != ESP_OK) {
-        ESP_LOGW(TAG, "打开NVS失败: %s", esp_err_to_name(ret));
+    if (ret == ESP_ERR_NVS_NOT_FOUND) {
+        // 命名空间不存在，说明还没有保存过配置，这是正常情况
+        ESP_LOGD(TAG, "NVS命名空间不存在，还未保存过WiFi配置");
+        return ESP_ERR_NVS_NOT_FOUND;
+    } else if (ret != ESP_OK) {
+        ESP_LOGE(TAG, "打开NVS失败: %s", esp_err_to_name(ret));
         return ret;
     }
     
@@ -110,7 +114,7 @@ esp_err_t xn_wifi_storage_load(xn_wifi_config_t *config)
     len = sizeof(config->ssid);
     ret = nvs_get_str(nvs_handle, "ssid", config->ssid, &len);
     if (ret != ESP_OK) {
-        ESP_LOGW(TAG, "读取SSID失败: %s", esp_err_to_name(ret));
+        ESP_LOGD(TAG, "读取SSID失败: %s", esp_err_to_name(ret));
         nvs_close(nvs_handle);
         return ret;
     }
@@ -119,7 +123,7 @@ esp_err_t xn_wifi_storage_load(xn_wifi_config_t *config)
     len = sizeof(config->password);
     ret = nvs_get_str(nvs_handle, "password", config->password, &len);
     if (ret != ESP_OK && ret != ESP_ERR_NVS_NOT_FOUND) {
-        ESP_LOGW(TAG, "读取密码失败: %s", esp_err_to_name(ret));
+        ESP_LOGD(TAG, "读取密码失败: %s", esp_err_to_name(ret));
     }
     
     nvs_close(nvs_handle);

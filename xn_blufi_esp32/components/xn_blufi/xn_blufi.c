@@ -11,6 +11,7 @@
 #include "esp_log.h"
 #include "esp_blufi_api.h"
 #include "esp_blufi.h"
+#include "esp_bt.h"
 #include "esp_nimble_hci.h"
 #include "nimble/nimble_port.h"
 #include "nimble/nimble_port_freertos.h"
@@ -210,6 +211,24 @@ esp_err_t xn_blufi_init(xn_blufi_t *blufi)
     ret = xn_wifi_manager_init(blufi->wifi_manager);
     if (ret != ESP_OK) {
         ESP_LOGE(TAG, "初始化WiFi管理器失败");
+        return ret;
+    }
+    
+    // 释放蓝牙控制器内存给经典蓝牙
+    ESP_ERROR_CHECK(esp_bt_controller_mem_release(ESP_BT_MODE_CLASSIC_BT));
+    
+    // 初始化蓝牙控制器
+    esp_bt_controller_config_t bt_cfg = BT_CONTROLLER_INIT_CONFIG_DEFAULT();
+    ret = esp_bt_controller_init(&bt_cfg);
+    if (ret) {
+        ESP_LOGE(TAG, "初始化蓝牙控制器失败: %s", esp_err_to_name(ret));
+        return ret;
+    }
+    
+    // 启用蓝牙控制器
+    ret = esp_bt_controller_enable(ESP_BT_MODE_BLE);
+    if (ret) {
+        ESP_LOGE(TAG, "启用蓝牙控制器失败: %s", esp_err_to_name(ret));
         return ret;
     }
     
